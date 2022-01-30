@@ -3,7 +3,7 @@ all:
 	rm -rf ebin/* *_ebin;
 	rm -rf src/*.beam *.beam  test_src/*.beam test_ebin;
 	rm -rf  *~ */*~  erl_cra*;
-	rm -rf appl_specs dbase host host_specs my* sd;
+	rm -rf appl_specs dbase host host_specs my* sd leader;
 #	app
 	erlc -I ../infra/log_server/include -o ebin src/*.erl;
 	echo Done
