@@ -187,7 +187,7 @@ handle_cast(Msg, State) ->
 %% --------------------------------------------------------------------
 
 handle_info({nodedown, CoordinatorNode},State) -> 
- %   io:format("nodedown Node ~p~n",[{CoordinatorNode,State#state.coordinator_node,?FUNCTION_NAME,?MODULE,?LINE}]),
+    io:format("nodedown Node ~p~n",[{CoordinatorNode,State#state.coordinator_node,?FUNCTION_NAME,?MODULE,?LINE}]),
     NewState=case State#state.coordinator_node=:=CoordinatorNode of
 		 true->
 		     start_election(State);
@@ -236,7 +236,8 @@ code_change(_OldVsn, State, _Extra) ->
 
 
 start_election(State) ->
-    rpc:cast(node(),log,log,[?Log_debug("Election started by node ",[])]),
+%    rpc:cast(node(),log,log,[?Log_debug("Election started by node ",[])]),
+    io:format("Election started by node ~p~n", [{node(),?FUNCTION_NAME,?MODULE,?LINE}]),
     Nodes=lib_leader:get_nodes(),
 %    NodesHigherId=nodes_with_higher_ids(Nodes),
 %    [rpc:cast(Node,leader,election_message,[node()])||Node<-NodesHigherId],
@@ -265,8 +266,8 @@ load_appl(Appl,Vm)->
     gen_server:call(?SERVER, {load_appl,Appl,Vm},infinity).
 
 win_election( State) ->
-    rpc:cast(node(),log,log,[?Log_debug("Node  won the election ",[node()])]),
-  %  io:format("Node  won the election ~p~n", [{node(),?FUNCTION_NAME,?MODULE,?LINE}]),
+  %  rpc:cast(node(),log,log,[?Log_debug("Node  won the election ",[node()])]),
+    io:format("Node  won the election ~p~n", [{node(),?FUNCTION_NAME,?MODULE,?LINE}]),
  %   rpc:cast(node(),db_logger,create,["log","election winner",atom_to_list(node()),{?MODULE,?FUNCTION_NAME,?LINE}]),
 %    {ok,Nodes}=application:get_env(leader,nodes),
     Nodes=lib_leader:get_nodes(), 
