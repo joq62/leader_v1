@@ -4,6 +4,8 @@ all:
 	rm -rf src/*.beam *.beam  test_src/*.beam test_ebin;
 	rm -rf  *~ */*~  erl_cra*;
 	rm -rf appl_specs dbase host host_specs my* sd leader;
+#	common
+	erlc -I ../infra/log_server/include -o ebin ../common/src/*.erl;
 #	app
 	cp src/*.app ebin;
 	erlc -I ../infra/log_server/include -o ebin src/*.erl;
