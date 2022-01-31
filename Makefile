@@ -5,6 +5,7 @@ all:
 	rm -rf  *~ */*~  erl_cra*;
 	rm -rf appl_specs dbase host host_specs my* sd leader;
 #	app
+	cp src/*.app ebin;
 	erlc -I ../infra/log_server/include -o ebin src/*.erl;
 	echo Done
 unit_test:

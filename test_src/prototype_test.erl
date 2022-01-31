@@ -75,16 +75,21 @@ start()->
 host_init()->
     %% Config files and ebin for host is already loaded and the vm is started
     [H1|_]=test_nodes:get_nodes(),
+ 
+
     HostEbin="ebin",
     true=rpc:call(H1,code,add_patha,[HostEbin],5000),
     ok=rpc:call(H1,boot_host,start,[[worker]], 10000),
     [HostVm1]=rpc:call(H1,sd,get,[host],5000),
     pong=rpc:call(HostVm1,host,ping,[],10000),
     
-    timer:sleep(5000),
     %start a leader 
+    
     ok=rpc:call(HostVm1,application,set_env,[[{leader,[{application,host}]}]],5000),
-    ok=rpc:call(HostVm1,application,start,[leader],5000),
+    ok=rpc:call(HostVm1,host,load_appl,[leader,HostVm1],10000),
+    ok=rpc:call(HostVm1,host,start_appl,[leader,HostVm1],10000),
+
+%   ok=rpc:call(HostVm1,application,start,[leader],5000),
     timer:sleep(2000),
     
     gl=rpc:call(HostVm1,leader,who_is_leader,[],5000),
