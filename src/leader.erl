@@ -89,7 +89,7 @@ init([]) ->
 %    io:format("leader 1 ~p~n",[{?MODULE,?LINE}]),
     leader:start_election(),
     timer:sleep(?WAIT_FOR_ELECTION_RESPONSE_TIMEOUT),
-    rpc:cast(node(),log,log,[?Log_info("server started",[])]),
+ %   rpc:cast(node(),log,log,[?Log_info("server started",[])]),
     {ok, #state{nodes = [],
 		coordinator_node = node(), 
 		pid_timeout=no_pid}}.
@@ -165,12 +165,14 @@ handle_cast({election_timeout,_PidTimeout}, State) ->
     {noreply, NewState};
 
 handle_cast({coordinator_message,CoordinatorNode}, State) ->
-    rpc:cast(node(),log,log,[?Log_debug("Coordinator_message received",[CoordinatorNode])]),
+    io:format("Coordinator_message received ~p~n", [{CoordinatorNode,?FUNCTION_NAME,?MODULE,?LINE}]),
+%    rpc:cast(node(),log,log,[?Log_debug("Coordinator_message received",[CoordinatorNode])]),
     NewState=set_coordinator(State, CoordinatorNode),
     {noreply, NewState};
 
 handle_cast({start_election}, State) ->
-    rpc:cast(node(),log,log,[?Log_debug("Start Election message received",[])]),
+    io:format("Start Election message received ~p~n", [{?FUNCTION_NAME,?MODULE,?LINE}]),
+ %   rpc:cast(node(),log,log,[?Log_debug("Start Election message received",[])]),
     NewState=start_election(State),
     {noreply, NewState};
 
@@ -334,10 +336,10 @@ get_nodes()->
     {ok,ApplNodes}=application:get_env(application),
     case sd:get(ApplNodes) of
 	[]->
-	    rpc:cast(node(),log,log,[?Log_info("no kubelet nodes ",[])]),
+	 %   rpc:cast(node(),log,log,[?Log_info("no kubelet nodes ",[])]),
 	    [];
 	Nodes ->
-	    rpc:cast(node(),log,log,[?Log_info("Nodes ",[Nodes])]),
+	 %   rpc:cast(node(),log,log,[?Log_info("Nodes ",[Nodes])]),
 	    lists:delete(node(),Nodes)
     end.
 
