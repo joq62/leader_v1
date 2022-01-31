@@ -35,7 +35,7 @@
 
 
 get_nodes()->
-    {ok,ApplNodes}=application:get_env(application),
+    {ok,ApplNodes}=application:get_env(leader,application),
     case sd:get(ApplNodes) of
 	[]->
 	    rpc:cast(node(),log,log,[?Log_info("no kubelet nodes ",[])]),
