@@ -38,10 +38,10 @@ get_nodes()->
     {ok,ApplNodes}=application:get_env(leader,application),
     case sd:get(ApplNodes) of
 	[]->
-	    rpc:cast(node(),log,log,[?Log_info("no kubelet nodes ",[])]),
+	%    rpc:cast(node(),log,log,[?Log_info("no kubelet nodes ",[])]),
 	    [];
 	Nodes ->
-	    rpc:cast(node(),log,log,[?Log_info("Nodes ",[Nodes])]),
+	 %   rpc:cast(node(),log,log,[?Log_info("Nodes ",[Nodes])]),
 	    lists:delete(node(),Nodes)
     end.
 %    {ok,KubeletNodes}=application:get_env(kubelet_nodes),

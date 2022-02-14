@@ -28,34 +28,26 @@
 %% Returns: non
 %% --------------------------------------------------------------------
 start()->
-  %  io:format("~p~n",[{"Start setup",?MODULE,?FUNCTION_NAME,?LINE}]),
+   %  io:format("~p~n",[{"Start setup",?MODULE,?FUNCTION_NAME,?LINE}]),
     ok=setup(),
-    io:format("~p~n",[{"Stop setup",?MODULE,?FUNCTION_NAME,?LINE}]),
+  %  io:format("~p~n",[{"Stop setup",?MODULE,?FUNCTION_NAME,?LINE}]),
 
-%    io:format("~p~n",[{"Start boot()",?MODULE,?FUNCTION_NAME,?LINE}]),
-%    ok= boot(),
-%    io:format("~p~n",[{"Stop  boot()",?MODULE,?FUNCTION_NAME,?LINE}]),
-
-    io:format("~p~n",[{"Start host_init()",?MODULE,?FUNCTION_NAME,?LINE}]),
-    ok= host_init(),
-    io:format("~p~n",[{"Stop  host_init()",?MODULE,?FUNCTION_NAME,?LINE}]),
-
-%    io:format("~p~n",[{"Start host_vm()",?MODULE,?FUNCTION_NAME,?LINE}]),
-%    ok= host_vm(),
-%    io:format("~p~n",[{"Stop  host_vm()",?MODULE,?FUNCTION_NAME,?LINE}]),
-
-%    io:format("~p~n",[{"Start appl_mgr()",?MODULE,?FUNCTION_NAME,?LINE}]),
-%    ok= appl_mgr(),
-%    io:format("~p~n",[{"Stop  appl_mgr()",?MODULE,?FUNCTION_NAME,?LINE}]),
-
-%    io:format("~p~n",[{"Start host_appl()",?MODULE,?FUNCTION_NAME,?LINE}]),
-%    ok= host_appl(),
-%    io:format("~p~n",[{"Stop  host_appl()",?MODULE,?FUNCTION_NAME,?LINE}]),
+%    io:format("~p~n",[{"Start cluster_start()",?MODULE,?FUNCTION_NAME,?LINE}]),
+    ok=cluster_start(),
+    io:format("~p~n",[{"Stop cluster_starto()",?MODULE,?FUNCTION_NAME,?LINE}]),
 
 
-%    io:format("~p~n",[{"Start dist_1()",?MODULE,?FUNCTION_NAME,?LINE}]),
-%    ok=dist_1(),
-%    io:format("~p~n",[{"Stop  sim_controller_1()",?MODULE,?FUNCTION_NAME,?LINE}]),
+%   io:format("~p~n",[{"Start killnode()",?MODULE,?FUNCTION_NAME,?LINE}]),
+    ok=killnode(),
+    io:format("~p~n",[{"Stop killnode()",?MODULE,?FUNCTION_NAME,?LINE}]),
+
+
+%   io:format("~p~n",[{"Start addnodes()",?MODULE,?FUNCTION_NAME,?LINE}]),
+    ok=addnodes(),
+    io:format("~p~n",[{"Stop addnodes()",?MODULE,?FUNCTION_NAME,?LINE}]),
+
+
+
 
  %   
       %% End application tests
@@ -65,6 +57,7 @@ start()->
    
     io:format("------>"++atom_to_list(?MODULE)++" ENDED SUCCESSFUL ---------"),
     ok.
+
  %  io:format("application:which ~p~n",[{application:which_applications(),?FUNCTION_NAME,?MODULE,?LINE}]),
 
 %% --------------------------------------------------------------------
@@ -72,170 +65,6 @@ start()->
 %% Description: Initiate the eunit tests, set upp needed processes etc
 %% Returns: non
 %% -------------------------------------------------------------------
-host_init()->
-    %% Config files and ebin for host is already loaded and the vm is started
-    [H1|_]=test_nodes:get_nodes(),
- 
-
-    HostEbin="ebin",
-    true=rpc:call(H1,code,add_patha,[HostEbin],5000),
-    ok=rpc:call(H1,boot_host,start,[[worker]], 10000),
-    [HostVm1]=rpc:call(H1,sd,get,[host],5000),
-    pong=rpc:call(HostVm1,host,ping,[],10000),
-    
-    %start a leader 
-    
-    ok=rpc:call(HostVm1,application,set_env,[[{leader,[{application,host}]}]],5000),
-    ok=rpc:call(HostVm1,host,load_appl,[leader,HostVm1],10000),
-    ok=rpc:call(HostVm1,host,start_appl,[leader,HostVm1],10000),
-
-%   ok=rpc:call(HostVm1,application,start,[leader],5000),
-    timer:sleep(2000),
-    
-    gl=rpc:call(HostVm1,leader,who_is_leader,[],5000),
-    
-    
-
-    ok.
-
-check_ping(_Num,_Vm,_Module,_T,true)->
-    ok;
-check_ping(0,_Vm,_Module,_T,Acc)->
-    Acc;
-check_ping(Num,Vm,Module,T,Acc)->
-    io:format("Num Vm ~p~n",[{Num,Vm,?FUNCTION_NAME,?MODULE,?LINE}]),
-    case rpc:call(Vm,Module,ping,[],5000) of
-	{badrpc,_}->
-	    NewAcc=false, 
-	    NewN=Num-1,
-	    timer:sleep(T);
-	pang->
-	    NewAcc=false, 
-	    NewN=Num-1,
-	    timer:sleep(T);
-	pong ->
-	    NewAcc=true,
-	    NewN=Num-1
-    end,
-    check_ping(NewN,Vm,Module,T,NewAcc).
-%% --------------------------------------------------------------------
-%% Function:start/0 
-%% Description: Initiate the eunit tests, set upp needed processes etc
-%% Returns: non
-%% -------------------------------------------------------------------
-
-host_vm()->
-  % Test host initiated in host_init
-    [H1|_]=test_nodes:get_nodes(),
-  %  ok=application:start(host),
-    [HostVm]=rpc:call(H1,sd,get,[host],5000),
-    {ok,N1}=rpc:call(HostVm,host,create,[],5000),
-    pong=net_adm:ping(N1),
-    Test1=test_1@c100,
-    {ok,Test1}=rpc:call(HostVm,host,create,["test_1"],5000),
-    pong=net_adm:ping(Test1),
-    
-    ok=rpc:call(HostVm,host,delete,[N1],5000),
-    pang=net_adm:ping(N1),
-
-    ok=rpc:call(HostVm,host,delete,[Test1]),
-    pang=net_adm:ping(Test1),
-
-    ok.
-%% --------------------------------------------------------------------
-%% Function:start/0 
-%% Description: Initiate the eunit tests, set upp needed processes etc
-%% Returns: non
-%% -------------------------------------------------------------------
-appl_mgr()->
-    % Test host initiated in host_init
-    [H1|_]=test_nodes:get_nodes(),
-    [HostVm]=rpc:call(H1,sd,get,[host],5000),
-    {ok,"dbase/1.0.0"}=rpc:call(HostVm,appl_mgr,get_appl_dir,[dbase,"1.0.0"],5000),
-%    ok=rpc:call(H1,appl_mgr,load_specs,[],5000),
-%    io:format(" ~p~n",[{appl_mgr:all_app_info(),?FUNCTION_NAME,?MODULE,?LINE}]),
-    {ok,"dbase/1.0.0"}=rpc:call(HostVm,appl_mgr,get_appl_dir,[dbase,"1.0.0"],5000),
-    {ok,"dbase/1.0.0"}=rpc:call(HostVm,appl_mgr,get_appl_dir,[dbase,latest],5000),
-    
-   
-    {ok,"myadd/1.0.0"}=rpc:call(HostVm,appl_mgr,get_appl_dir,[myadd,"1.0.0"],5000),
-    {ok,"myadd/1.0.0"}=rpc:call(HostVm,appl_mgr,get_appl_dir,[myadd,latest],5000),
-   
-    ok.
-
-%% --------------------------------------------------------------------
-%% Function:start/0 
-%% Description: Initiate the eunit tests, set upp needed processes etc
-%% Returns: non
-%% -------------------------------------------------------------------
-host_appl()->
-   
-    % Test host initiated in host_init
-    [H1|_]=test_nodes:get_nodes(),
-    % Start a Vm  
-
-    [H1|_]=test_nodes:get_nodes(),
-    [HostVm]=rpc:call(H1,sd,get,[host],5000),
-
-    {ok,N1}=rpc:call(HostVm,host,create,[],5000),
-    false=lists:keymember(myadd,1,rpc:call(N1,application,loaded_applications,[],1000)),
-    false=lists:keymember(myadd,1,rpc:call(N1,application,which_applications,[],1000)), 
-    % Load an application  
-    ok=rpc:call(HostVm,host,load_appl,[myadd,N1],5000),
-    true=lists:keymember(myadd,1,rpc:call(N1,application,loaded_applications,[],1000)),
-    false=lists:keymember(myadd,1,rpc:call(N1,application,which_applications,[],1000)),
-    % Start an application   
-    ok=rpc:call(HostVm,host,start_appl,[myadd,N1],5000),
-    true=lists:keymember(myadd,1,rpc:call(N1,application,loaded_applications,[],1000)),
-    true=lists:keymember(myadd,1,rpc:call(N1,application,which_applications,[],1000)),
-    % Test the application
-    42=rpc:call(N1,myadd,add,[20,22],1000),
-    {error,{already_started,myadd}}=rpc:call(HostVm,host,start_appl,[myadd,N1],5000),    
-    
-   % [H1]=rpc:call(H1,sd,get,[host],5000),
-
-    % stop an application 
-    ok=rpc:call(HostVm,host,stop_appl,[myadd,N1],5000),
-    true=lists:keymember(myadd,1,rpc:call(N1,application,loaded_applications,[],1000)),
-    false=lists:keymember(myadd,1,rpc:call(N1,application,which_applications,[],1000)),
-    {badrpc,_}=rpc:call(N1,myadd,add,[20,22],1000),
-    % Unload an application
-    ok=rpc:call(HostVm,host,unload_appl,[myadd,N1],5000),
-    false=lists:keymember(myadd,1,rpc:call(N1,application,loaded_applications,[],1000)),
-    false=lists:keymember(myadd,1,rpc:call(N1,application,which_applications,[],1000)),
-    {badrpc,_}=rpc:call(N1,myadd,add,[20,22],1000),
-    
-  
-    ok.
-    
-
-%% --------------------------------------------------------------------
-%% Function:start/0 
-%% Description: Initiate the eunit tests, set upp needed processes etc
-%% Returns: non
-%% -------------------------------------------------------------------
-dist_1()->
-    [H1,H2,H3]=test_nodes:get_nodes(),
-    io:format("sd:all ~p~n",[{rpc:call(H1,sd,all,[],2000),?FUNCTION_NAME,?MODULE,?LINE}]),
-
-    ok=rpc:call(H2,boot_host,start,[[controller]],10000),
-    ok=rpc:call(H3,boot_host,start,[[controller]],10000),
-   
-  %  [H1,H2,H3]=lists:sort(rpc:call(H1,sd,get,[host],2000)),
-  %  [H1,H2,H3]=lists:sort(rpc:call(H2,sd,get,[host],2000)),
-  %  [H1,H2,H3]=lists:sort(rpc:call(H3,sd,get,[host],2000)),
-
-  %  {state,worker}=rpc:call(H1,host,read_state,[],2000),
-  %  {state,worker}=rpc:call(H2,host,read_state,[],2000),
-  %  {state,controller}=rpc:call(H3,host,read_state,[],2000),
-    
-    io:format("sd:get(host) ~p~n",[{rpc:call(H1,sd,get,[host],2000),?FUNCTION_NAME,?MODULE,?LINE}]),
-    
-    
-
-    ok.
-    
-
 
     
 %% --------------------------------------------------------------------
@@ -244,7 +73,94 @@ dist_1()->
 %% Returns: non
 %% -------------------------------------------------------------------
 
+%% --------------------------------------------------------------------
+%% Function:start/0 
+%% Description: Initiate the eunit tests, set upp needed processes etc
+%% Returns: non
+%% -------------------------------------------------------------------
+addnodes()->
+    [Vm2,Vm3]=lists:delete(node(),nodes()),
+    Leader=rpc:call(Vm3,leader,who_is_leader,[],5*1000),
+    io:format("Leader   ~p~n",[{Leader,?MODULE,?FUNCTION_NAME,?LINE}]),
+    
+    %Add newer node
+    {ok,Vm1}=test_nodes:start_slave("h200"),
+    
+    [rpc:call(Vm1,net_adm,ping,[N],5000)||N<-lists:delete(node(),nodes())],
+    {ok,_}=rpc:call(Vm1,sd,start,[],5*1000),
+    ok=rpc:call(Vm1,application,set_env,[[{leader,[{application,leader}]}]],5*1000),
+    ok=rpc:call(Vm1,application,start,[leader],5*1000),
+    timer:sleep(3000),
 
+    [Vm1,Vm2,Vm3]=lists:sort(lists:delete(node(),nodes())), 
+
+    Vm1=rpc:call(Vm1,leader,who_is_leader,[],5*1000),
+    Vm1=rpc:call(Vm2,leader,who_is_leader,[],5*1000),
+    Vm1=rpc:call(Vm3,leader,who_is_leader,[],5*1000),
+    
+
+    ok.
+
+%% --------------------------------------------------------------------
+%% Function:start/0 
+%% Description: Initiate the eunit tests, set upp needed processes etc
+%% Returns: non
+%% -------------------------------------------------------------------
+
+
+
+killnode()->
+    [Vm1,Vm2,Vm3]=test_nodes:get_nodes(),
+    Vm1=rpc:call(Vm2,leader,who_is_leader,[],5*1000),
+    
+ %   io:format("Leader   ~p~n",[{Leader,?MODULE,?FUNCTION_NAME,?LINE}]),
+    %Kill leader
+    rpc:call(Vm1,init,stop,[],1000),
+    timer:sleep(3000),
+    Vm2=rpc:call(Vm3,leader,who_is_leader,[],5*1000),
+   % false=Leader=:=NewLeader,
+   % io:format("NewLeader   ~p~n",[{NewLeader,?MODULE,?FUNCTION_NAME,?LINE}]),
+    ok.    
+
+
+%% --------------------------------------------------------------------
+%% Function:start/0 
+%% Description: Initiate the eunit tests, set upp needed processes etc
+%% Returns: non
+%% -------------------------------------------------------------------
+cluster_start()->
+    [Vm1,Vm2,Vm3]=test_nodes:get_nodes(),
+    % Start first node
+    {ok,_}=rpc:call(Vm1,sd,start,[],5*1000),
+    ok=rpc:call(Vm1,application,set_env,[[{leader,[{application,leader}]}]],5*1000),
+    ok=rpc:call(Vm1,application,start,[leader],5*1000),
+    timer:sleep(3000),
+    Vm1=rpc:call(Vm1,leader,who_is_leader,[],5*1000),
+    io:format("Vm1 leader ~p~n",[{rpc:call(Vm1,leader,who_is_leader,[],5*1000),
+				 ?MODULE,?FUNCTION_NAME,?LINE}]),
+    % Start second node
+    {ok,_}=rpc:call(Vm2,sd,start,[],5*1000),
+    ok=rpc:call(Vm2,application,set_env,[[{leader,[{application,leader}]}]],5*1000),
+    ok=rpc:call(Vm2,application,start,[leader],5*1000),
+    timer:sleep(3000),
+
+    Vm1=rpc:call(Vm1,leader,who_is_leader,[],5*1000),
+    Vm1=rpc:call(Vm2,leader,who_is_leader,[],5*1000),
+    
+  % Start third node
+    {ok,_}=rpc:call(Vm3,sd,start,[],5*1000),
+    ok=rpc:call(Vm3,application,set_env,[[{leader,[{application,leader}]}]],5*1000),
+    ok=rpc:call(Vm3,application,start,[leader],5*1000),
+    timer:sleep(3000),
+
+    Vm1=rpc:call(Vm1,leader,who_is_leader,[],5*1000),
+    Vm1=rpc:call(Vm2,leader,who_is_leader,[],5*1000),
+    Vm1=rpc:call(Vm3,leader,who_is_leader,[],5*1000),
+
+    
+    
+    ok.
+    
 
 %% --------------------------------------------------------------------
 %% Function:start/0 
@@ -252,7 +168,13 @@ dist_1()->
 %% Returns: non
 %% --------------------------------------------------------------------
 setup()->
-   
+    % suppor debugging
+    ok=application:start(sd),
+
+    % Simulate host
+    ok=test_nodes:start_nodes(),
+ %   [Vm1|_]=test_nodes:get_nodes(),
+    
           
     ok.
 

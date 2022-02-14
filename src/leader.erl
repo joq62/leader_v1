@@ -16,7 +16,7 @@
 %% --------------------------------------------------------------------
 -include("log.hrl").
 %% --------------------------------------------------------------------
--define(WAIT_FOR_ELECTION_RESPONSE_TIMEOUT,2*1000).
+-define(WAIT_FOR_ELECTION_RESPONSE_TIMEOUT,1*1000).
 
 -define(SERVER,leader).
 
@@ -134,14 +134,14 @@ handle_call(Request, From, State) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
 handle_cast({election_message,CoordinatorNode}, State) ->
-    rpc:cast(node(),log,log,[?Log_debug("Election_message received",[CoordinatorNode])]),
+%    rpc:cast(node(),log,log,[?Log_debug("Election_message received",[CoordinatorNode])]),
 %    io:format("CoordinatorNode ,node() , > ~p~n",[{CoordinatorNode,node(),CoordinatorNode > node(),
 %						   ?FUNCTION_NAME,?MODULE,?LINE}]),
 %    {CoordinatorNodeName,_}=misc_node:vmid_hostid(CoordinatorNode),
  %   {NodeName,_}=misc_node:vmid_hostid(node()),
-    CoordinatorId=misc_node:vmid_hostid(CoordinatorNode),
-    NodeId=misc_node:vmid_hostid(node()),
-    case CoordinatorId > NodeId of
+ %   CoordinatorId=misc_node:vmid_hostid(CoordinatorNode),
+ %   NodeId=misc_node:vmid_hostid(node()),
+    case CoordinatorNode > node() of
 	false->% lost election
 	    NewState=State;
 	true->
@@ -238,16 +238,10 @@ code_change(_OldVsn, State, _Extra) ->
 
 
 start_election(State) ->
-%    rpc:cast(node(),log,log,[?Log_debug("Election started by node ",[])]),
     io:format("Election started by node ~p~n", [{node(),?FUNCTION_NAME,?MODULE,?LINE}]),
     Nodes=lib_leader:get_nodes(),
-%    NodesHigherId=nodes_with_higher_ids(Nodes),
-%    [rpc:cast(Node,leader,election_message,[node()])||Node<-NodesHigherId],
     NodesLowerId=nodes_with_lower_ids(Nodes),
-%    io:format("NodesLowerId ~p~n",[{NodesLowerId,node(),
-%				 ?MODULE,?FUNCTION_NAME,?LINE}]),
-%    [rpc:cast(Node,leader,coordinator_message,[node()])||Node<-NodesLowerId],
-    [rpc:cast(Node,leader,election_message,[node()])||Node<-NodesLowerId],
+     [rpc:cast(Node,leader,election_message,[node()])||Node<-NodesLowerId],
     PidTimeout=spawn(fun()->election_timeout() end),
     State#state{pid_timeout=PidTimeout}.
 
@@ -268,17 +262,9 @@ load_appl(Appl,Vm)->
     gen_server:call(?SERVER, {load_appl,Appl,Vm},infinity).
 
 win_election( State) ->
-  %  rpc:cast(node(),log,log,[?Log_debug("Node  won the election ",[node()])]),
     io:format("Node  won the election ~p~n", [{node(),?FUNCTION_NAME,?MODULE,?LINE}]),
- %   rpc:cast(node(),db_logger,create,["log","election winner",atom_to_list(node()),{?MODULE,?FUNCTION_NAME,?LINE}]),
-%    {ok,Nodes}=application:get_env(leader,nodes),
     Nodes=lib_leader:get_nodes(), 
-%   NodesLowerId=nodes_with_lower_ids(Nodes),
-%    [rpc:cast(Node,leader,coordinator_message,[node()])||Node<-NodesLowerId],
     NodesHigherId=nodes_with_higher_ids(Nodes),
- %   io:format("NodesHigherId ~p~n",[{NodesHigherId,node(),
-%				 ?MODULE,?FUNCTION_NAME,?LINE}]),
-%    [rpc:cast(Node,leader,election_message,[node()])||Node<-NodesHigherId],
     [rpc:cast(Node,leader,coordinator_message,[node()])||Node<-NodesHigherId],
     set_coordinator(State, node()).
 %% --------------------------------------------------------------------
@@ -318,35 +304,26 @@ election_timeout()->
 %% Returns: non
 %% --------------------------------------------------------------------
 nodes_with_higher_ids(ChallangeNodes) ->
-    NodeId=misc_node:vmid_hostid(node()),
+    MyNode=node(),
     [Node || Node<- ChallangeNodes,
-	     misc_node:vmid_hostid(Node) > NodeId].
+	     Node > MyNode].
 
 nodes_with_lower_ids(ChallangeNodes) ->
-    NodeId=misc_node:vmid_hostid(node()),
+    MyNode=node(),
     [Node || Node<- ChallangeNodes,
-	     misc_node:vmid_hostid(Node) < NodeId].
+	     Node < MyNode].
+
 
 %% --------------------------------------------------------------------
 %% Function:start/0 
 %% Description: Initiate the eunit tests, set upp needed processes etc
 %% Returns: non
 %% --------------------------------------------------------------------
-get_nodes()->
-    {ok,ApplNodes}=application:get_env(application),
-    case sd:get(ApplNodes) of
-	[]->
-	 %   rpc:cast(node(),log,log,[?Log_info("no kubelet nodes ",[])]),
-	    [];
-	Nodes ->
-	 %   rpc:cast(node(),log,log,[?Log_info("Nodes ",[Nodes])]),
-	    lists:delete(node(),Nodes)
-    end.
 
 %nodes_with_higher_ids(Nodes) ->
- %   {NodeName,_}=misc_node:vmid_hostid(node()),
- %   NodeNodeNameHostIds=[{Node,misc_node:vmid_hostid(Node)}||Node<-Nodes],
- %   [Node || {Node, {XNodeName,_HostId}}<- NodeNodeNameHostIds,
+%    {NodeName,_}=misc_node:vmid_hostid(node()),
+%    NodeNodeNameHostIds=[{Node,misc_node:vmid_hostid(Node)}||Node<-Nodes],
+%    [Node || {Node, {XNodeName,_HostId}}<- NodeNodeNameHostIds,
 %	     XNodeName > NodeName].
 
 %nodes_with_lower_ids(Nodes) ->
@@ -355,4 +332,3 @@ get_nodes()->
  %   [Node || {Node, {XNodeName,_HostId}}<- NodeNodeNameHostIds,
 %	     XNodeName < NodeName].
    % [Node || Node <- Nodes, Node < NodeName ].
-

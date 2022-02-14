@@ -18,14 +18,10 @@ unit_test:
 #	common
 	erlc -D unit_test -I ../infra/log_server/include -o ebin ../common/src/*.erl;
 #	sd
+	cp ../sd/src/*.app ebin;
 	erlc -D unit_test -I ../infra/log_server/include -o ebin ../sd/src/*.erl;
-#	appl_mgr
-	cp ../appl_mgr/src/*.app ebin;
-	erlc -D unit_test -I ../infra/log_server/include -I ../host/include -o ebin ../appl_mgr/src/*.erl;
-#	host
-	cp ../host/src/*.app ebin;
-	erlc -D unit_test -I ../infra/log_server/include -I ../host/include -o ebin ../host/src/*.erl;
 #	leader
+	cp src/*.app ebin;
 	erlc -D unit_test -I ../infra/log_server/include -o ebin src/*.erl;
 #	test application
 	cp test_src/*.app test_ebin;
